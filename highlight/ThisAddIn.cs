@@ -28,6 +28,7 @@ namespace highlight
             {
                 System.Windows.Forms.MessageBox.Show("Selected Text (Fact): " + selectedText, "Fact Annotation");
                 // Later: show a custom input form instead of MessageBox
+                // ?
             }
         }
         #region VSTO generated code
