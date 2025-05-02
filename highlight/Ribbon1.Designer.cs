@@ -34,19 +34,24 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Ribbon1));
             this.tab1 = this.Factory.CreateRibbonTab();
             this.group1 = this.Factory.CreateRibbonGroup();
             this.buttonAnnotateFact = this.Factory.CreateRibbonButton();
             this.toggleAnnotateFact = this.Factory.CreateRibbonToggleButton();
+            this.group2 = this.Factory.CreateRibbonGroup();
+            this.toggleButton1 = this.Factory.CreateRibbonToggleButton();
             this.tab1.SuspendLayout();
             this.group1.SuspendLayout();
+            this.group2.SuspendLayout();
             this.SuspendLayout();
             // 
             // tab1
             // 
             this.tab1.ControlId.ControlIdType = Microsoft.Office.Tools.Ribbon.RibbonControlIdType.Office;
             this.tab1.Groups.Add(this.group1);
-            this.tab1.Label = "TabAddIns";
+            this.tab1.Groups.Add(this.group2);
+            this.tab1.Label = "Highlight and Modify";
             this.tab1.Name = "tab1";
             // 
             // group1
@@ -64,9 +69,24 @@
             // 
             // toggleAnnotateFact
             // 
-            this.toggleAnnotateFact.Label = "Trigger";
+            this.toggleAnnotateFact.Image = ((System.Drawing.Image)(resources.GetObject("toggleAnnotateFact.Image")));
+            this.toggleAnnotateFact.Label = "Modify Mode";
             this.toggleAnnotateFact.Name = "toggleAnnotateFact";
+            this.toggleAnnotateFact.ShowImage = true;
             this.toggleAnnotateFact.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.toggleAnnotateFact_Click);
+            // 
+            // group2
+            // 
+            this.group2.Items.Add(this.toggleButton1);
+            this.group2.Label = "Insert";
+            this.group2.Name = "group2";
+            // 
+            // toggleButton1
+            // 
+            this.toggleButton1.Image = ((System.Drawing.Image)(resources.GetObject("toggleButton1.Image")));
+            this.toggleButton1.Label = "Insert Content";
+            this.toggleButton1.Name = "toggleButton1";
+            this.toggleButton1.ShowImage = true;
             // 
             // Ribbon1
             // 
@@ -78,6 +98,8 @@
             this.tab1.PerformLayout();
             this.group1.ResumeLayout(false);
             this.group1.PerformLayout();
+            this.group2.ResumeLayout(false);
+            this.group2.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -88,6 +110,8 @@
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup group1;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton buttonAnnotateFact;
         internal Microsoft.Office.Tools.Ribbon.RibbonToggleButton toggleAnnotateFact;
+        internal Microsoft.Office.Tools.Ribbon.RibbonGroup group2;
+        internal Microsoft.Office.Tools.Ribbon.RibbonToggleButton toggleButton1;
     }
 
     partial class ThisRibbonCollection

@@ -36,9 +36,9 @@ namespace highlight
 
             string html = System.IO.File.ReadAllText(htmlPath);
 
-            // Pattern: <ix:nonNumeric ... id="FactXXXXX">selectedText</ix:nonNumeric>
+            // Pattern: <ix:nonNumeric>selectedText</ix:nonNumeric>
             var regex = new System.Text.RegularExpressions.Regex(
-                $@"(<ix:nonNumeric[^>]*id=""(Fact\d+)""[^>]*>)\s*{System.Text.RegularExpressions.Regex.Escape(selectedText)}\s*(</ix:nonNumeric>)",
+                $@"(<ix:nonNumeric[^>]*>)\s*{System.Text.RegularExpressions.Regex.Escape(selectedText)}\s*(</ix:nonNumeric>)",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase
             );
 
@@ -49,23 +49,49 @@ namespace highlight
                 return;
             }
 
-            string factId = match.Groups[2].Value;
+            string openingTag = match.Groups[1].Value;
+            string closingTag = match.Groups[2].Value;
 
-            // Prompt for new value
-            string newValue = Microsoft.VisualBasic.Interaction.InputBox(
-                $"Enter new value for {factId} (was \"{selectedText}\"):", "Replace Fact", selectedText);
+            // Check if the tag is a date (based on format attribute)
+            bool isDateFormatted = openingTag.Contains("format=\"ixt:datemonthdayyearen\"");
+
+            string promptText = $"Enter new value for \"{selectedText}\":";
+            if (isDateFormatted)
+                promptText += "\n(e.g., January 21, 2019)";
+
+            string newValue = Microsoft.VisualBasic.Interaction.InputBox(promptText, "Replace Fact", selectedText);
 
             if (string.IsNullOrEmpty(newValue) || newValue == selectedText)
                 return;
 
-            // Replace inner value
-            string updatedHtml = regex.Replace(html, $"{match.Groups[1].Value}{newValue}{match.Groups[3].Value}");
+            // Replace the ix:nonNumeric inner value
+            string updatedHtml = regex.Replace(html, $"{openingTag}{newValue}{closingTag}");
+
+            if (isDateFormatted && DateTime.TryParse(newValue, out DateTime parsedDate))
+            {
+                string isoDate = parsedDate.ToString("yyyy-MM-dd");
+
+                updatedHtml = System.Text.RegularExpressions.Regex.Replace(
+                    updatedHtml,
+                    @"<xbrli:startDate>.*?</xbrli:startDate>",
+                    $"<xbrli:startDate>{isoDate}</xbrli:startDate>",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                );
+
+                updatedHtml = System.Text.RegularExpressions.Regex.Replace(
+                    updatedHtml,
+                    @"<xbrli:endDate>.*?</xbrli:endDate>",
+                    $"<xbrli:endDate>{isoDate}</xbrli:endDate>",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                );
+            }
+
 
             System.IO.File.WriteAllText(htmlPath, updatedHtml);
 
             Sel.Text = newValue;
 
-            System.Windows.Forms.MessageBox.Show($"Updated {factId} to: {newValue}", "Fact Replaced");
+            System.Windows.Forms.MessageBox.Show($"Updated fact to: {newValue}", "Fact Replaced");
         }
 
         #region VSTO generated code

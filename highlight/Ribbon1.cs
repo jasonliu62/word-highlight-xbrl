@@ -36,11 +36,11 @@ namespace highlight
             // Optional: You could show status to user
             if (toggleAnnotateFact.Checked)
             {
-                System.Windows.Forms.MessageBox.Show("Annotation mode ON");
+                System.Windows.Forms.MessageBox.Show("Modify mode ON");
             }
             else
             {
-                System.Windows.Forms.MessageBox.Show("Annotation mode OFF");
+                System.Windows.Forms.MessageBox.Show("Modify mode OFF");
             }
         }
     }
