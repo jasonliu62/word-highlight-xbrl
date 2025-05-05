@@ -43,5 +43,10 @@ namespace highlight
                 System.Windows.Forms.MessageBox.Show("Modify mode OFF");
             }
         }
+
+        private void ReplaceDisclosureButton_Click(object sender, RibbonControlEventArgs e)
+        {
+            Globals.ThisAddIn.ReplaceDisclosure();
+        }
     }
 }

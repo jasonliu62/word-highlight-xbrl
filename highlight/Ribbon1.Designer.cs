@@ -40,7 +40,7 @@
             this.buttonAnnotateFact = this.Factory.CreateRibbonButton();
             this.toggleAnnotateFact = this.Factory.CreateRibbonToggleButton();
             this.group2 = this.Factory.CreateRibbonGroup();
-            this.toggleButton1 = this.Factory.CreateRibbonToggleButton();
+            this.btnReplaceDisclosure = this.Factory.CreateRibbonToggleButton();
             this.tab1.SuspendLayout();
             this.group1.SuspendLayout();
             this.group2.SuspendLayout();
@@ -77,16 +77,17 @@
             // 
             // group2
             // 
-            this.group2.Items.Add(this.toggleButton1);
+            this.group2.Items.Add(this.btnReplaceDisclosure);
             this.group2.Label = "Insert";
             this.group2.Name = "group2";
             // 
-            // toggleButton1
+            // btnReplaceDisclosure
             // 
-            this.toggleButton1.Image = ((System.Drawing.Image)(resources.GetObject("toggleButton1.Image")));
-            this.toggleButton1.Label = "Insert Content";
-            this.toggleButton1.Name = "toggleButton1";
-            this.toggleButton1.ShowImage = true;
+            this.btnReplaceDisclosure.Image = ((System.Drawing.Image)(resources.GetObject("btnReplaceDisclosure.Image")));
+            this.btnReplaceDisclosure.Label = "Replace Disclosure";
+            this.btnReplaceDisclosure.Name = "btnReplaceDisclosure";
+            this.btnReplaceDisclosure.ShowImage = true;
+            this.btnReplaceDisclosure.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.ReplaceDisclosureButton_Click);
             // 
             // Ribbon1
             // 
@@ -111,7 +112,7 @@
         internal Microsoft.Office.Tools.Ribbon.RibbonButton buttonAnnotateFact;
         internal Microsoft.Office.Tools.Ribbon.RibbonToggleButton toggleAnnotateFact;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup group2;
-        internal Microsoft.Office.Tools.Ribbon.RibbonToggleButton toggleButton1;
+        internal Microsoft.Office.Tools.Ribbon.RibbonToggleButton btnReplaceDisclosure;
     }
 
     partial class ThisRibbonCollection
