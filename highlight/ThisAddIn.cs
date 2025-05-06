@@ -104,6 +104,27 @@ namespace highlight
             string originalHtmlPath = @"C:\Users\byung\Downloads\666\focus_8k.htm";     // Your 8-K HTML file
             string insertDocxPath = @"C:\Users\byung\Downloads\666\insertTest.docx";   // Your new content
 
+
+            Word.Application app = Globals.ThisAddIn.Application;
+            Word.Document dc = app.Documents.Open(insertDocxPath, ReadOnly: false, Visible: true);
+
+            foreach (Word.Table table in dc.Tables)
+            {
+                foreach (Word.Row row in table.Rows)
+                {
+                    foreach (Word.Cell cell in row.Cells)
+                    {
+                        Word.Range rng = cell.Range;
+                        rng.ParagraphFormat.Reset(); 
+                    }
+                }
+            }
+
+            // Save and close the document
+            dc.Save(); // Save over the original
+            dc.Close();
+
+
             // Step 1: Load Word and remove disclosure block
             Word.Application wordApp = Globals.ThisAddIn.Application;
             Word.Document doc = wordApp.Documents.Open(originalDocxPath, ReadOnly: false);
@@ -157,19 +178,19 @@ namespace highlight
                 }
             }
 
-            // Step 2: Read original HTML
             string html = File.ReadAllText(originalHtmlPath);
 
-            // Match from Item... up to and including <p><b>SIGNATURE</b></p>
+            // Match from first <b>Item X.XX</b> up to just before <p><b>SIGNATURE</b></p>
             var htmlRegex = new Regex(
-                @"(<(p|td|span|div)[^>]*?>\s*<b>\s*Item\s.*?</b>.*?)(?=<p[^>]*?>\s*<b>SIGNATURE</b>\s*</p>)",
+                @"(<table[^>]*?>\s*<tr[^>]*?>\s*<td[^>]*?>\s*<span[^>]*?><b>\s*Item\s+\d+\.\d+.*?</b></span>.*?</table>[\s\S]*?)(?=<p[^>]*?><b>SIGNATURE</b></p>)",
                 RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
 
             Match htmlMatch = htmlRegex.Match(html);
             if (!htmlMatch.Success)
             {
-                System.Windows.Forms.MessageBox.Show("Could not locate disclosure in HTML.");
+                File.WriteAllText(@"C:\Users\byung\Downloads\666\DEBUG_failed_match.html", html);
+                System.Windows.Forms.MessageBox.Show("Could not locate the first disclosure block before SIGNATURE.");
                 return;
             }
 
@@ -179,50 +200,128 @@ namespace highlight
             insertToHtml.SaveAs2(tempHtmlPath, Word.WdSaveFormat.wdFormatFilteredHTML);
             insertToHtml.Close(false);
 
-            string insertedHtml = File.ReadAllText(tempHtmlPath);
+            // Fix encoding (Word exports in Windows-1252 / ANSI)
+            string rawContent = File.ReadAllText(tempHtmlPath, Encoding.Default);
+            File.WriteAllText(tempHtmlPath, rawContent, Encoding.UTF8);
 
-            // Extract only the main body content inside <div class=WordSection1>...</div>
-            var mainBlockMatch = Regex.Match(insertedHtml, @"<div class=WordSection1>([\s\S]*?)</div>\s*</body>", RegexOptions.IgnoreCase);
-            if (mainBlockMatch.Success)
-            {
-                insertedHtml = mainBlockMatch.Groups[1].Value;
-            }
+            // Clean the filtered HTML
+            string insertedRawHtml = File.ReadAllText(tempHtmlPath, Encoding.UTF8);
+            string insertedHtml = CleanFilteredHtml(insertedRawHtml);
+            File.WriteAllText(tempHtmlPath, insertedHtml, Encoding.UTF8);  // optional for inspection
 
-            // Normalize font
-            for (int i = 0; i < 7; i++)
-            {
-                insertedHtml += "<p style=\"font: 10pt Times New Roman, Times, Serif; margin: 0pt 0\">&#160;</p>\n";
-            }
+            // Build visual spacing and divider
+            string spacerBefore = string.Join("\n",
+                Enumerable.Repeat("<p style=\"font: 10pt Times New Roman, Times, Serif; margin: 0pt 0\">&#160;</p>", 7));
 
-            // Add a light horizontal rule
-            insertedHtml += @"
-            <div style=""border-bottom: Black 1pt solid; margin-top: 6pt; margin-bottom: 6pt"">
-              <table cellpadding=""0"" cellspacing=""0"" style=""border-collapse: collapse; width: 100%; font-size: 10pt"">
-                <tr style=""vertical-align: top; text-align: left"">
-                  <td style=""width: 33%"">&#160;</td>
-                  <td style=""width: 34%; text-align: center"">&#160;</td>
-                  <td style=""width: 33%; text-align: right"">&#160;</td>
-                </tr>
-              </table>
-            </div>
-            <div style=""break-before: page; margin-top: 6pt; margin-bottom: 6pt"">
-              <p style=""margin: 0pt"">&#160;</p>
-            </div>";
+            string divider = @"
+<div style=""border-bottom: Black 1pt solid; margin-top: 6pt; margin-bottom: 6pt"">
+  <table cellpadding=""0"" cellspacing=""0"" style=""border-collapse: collapse; width: 100%; font-size: 10pt"">
+    <tr style=""vertical-align: top; text-align: left"">
+      <td style=""width: 33%"">&#160;</td>
+      <td style=""width: 34%; text-align: center"">&#160;</td>
+      <td style=""width: 33%; text-align: right"">&#160;</td>
+    </tr>
+  </table>
+</div>
+<div style=""break-before: page; margin-top: 6pt; margin-bottom: 6pt"">
+  <p style=""margin: 0pt"">&#160;</p>
+</div>";
 
-            for (int i = 0; i < 3; i++)
-            {
-                insertedHtml += "<p style=\"font: 10pt Times New Roman, Times, Serif; margin: 0pt 0\">&#160;</p>\n";
-            }
+            string spacerAfter = string.Join("\n",
+                Enumerable.Repeat("<p style=\"font: 10pt Times New Roman, Times, Serif; margin: 0pt 0\">&#160;</p>", 3));
 
+            // Final wrapper around inserted content
+            string fullInsertBlock = $@"
+<div style=""width:100%; font-family: 'Times New Roman', Times, Serif; font-size: 10pt;"">
+{insertedHtml}
+{spacerBefore}
+{divider}
+{spacerAfter}
+</div>";
 
-            // Final insertion: insertedHtml + preserved SIGNATURE block
-            string updatedHtml = htmlRegex.Replace(html, insertedHtml, 1);
-            File.WriteAllText(originalHtmlPath, updatedHtml);
+            // Optional debug: save what you're inserting
+            File.WriteAllText(@"C:\Users\byung\Downloads\666\DEBUG_insert.html", fullInsertBlock);
+
+            // Replace the original disclosure section
+            string updatedHtml = html.Substring(0, htmlMatch.Index)
+                      + fullInsertBlock
+                      + html.Substring(htmlMatch.Index + htmlMatch.Length);
+
+            // Save for verification
+            File.WriteAllText(@"C:\Users\byung\Downloads\666\DEBUG_updated_output.html", updatedHtml, Encoding.UTF8);
+
+            // Write to target
+            File.WriteAllText(originalHtmlPath, updatedHtml, Encoding.UTF8);
+
 
 
             System.Windows.Forms.MessageBox.Show("Disclosure section replaced in both Word and HTML.");
 
         }
+
+        private string CleanFilteredHtml(string rawHtml)
+        {
+            // 1. Remove <style> tags entirely
+            rawHtml = Regex.Replace(rawHtml, @"<style[^>]*?>[\s\S]*?</style>", "", RegexOptions.IgnoreCase);
+
+            // 2. Remove spans with visibility:hidden or display:none
+            rawHtml = Regex.Replace(rawHtml, @"<span[^>]*?style\s*=\s*""[^""]*(visibility\s*:\s*hidden|display\s*:\s*none)[^""]*""[^>]*>.*?</span>", "", RegexOptions.IgnoreCase);
+
+            // 3. Remove mso- prefixed styles from inline attributes
+            rawHtml = Regex.Replace(rawHtml, @"style=""[^""]*?mso-[^""]*?""", "", RegexOptions.IgnoreCase);
+
+            // 4. Remove align=center from <div> and replace with normal div
+            rawHtml = Regex.Replace(rawHtml, @"<div\s+align\s*=\s*[""']?center[""']?\s*>", "<div>", RegexOptions.IgnoreCase);
+
+            // 5. Fix all table styles: strip fixed width and inject responsive style
+            rawHtml = Regex.Replace(
+                rawHtml,
+                @"<table([^>]*)style=""([^""]*)""([^>]*)>",
+                match =>
+                {
+                    string beforeStyle = match.Groups[1].Value;
+                    string styleContent = match.Groups[2].Value;
+                    string afterStyle = match.Groups[3].Value;
+
+                    // Remove fixed width
+                    styleContent = Regex.Replace(styleContent, @"width\s*:[^;]+;?", "", RegexOptions.IgnoreCase);
+
+                    // Clean whitespace
+                    styleContent = Regex.Replace(styleContent, @"\s+", " ").Trim();
+
+                    // Append proper table styling
+                    string fixedStyle = $"style=\"{styleContent}; width:100%; border-collapse:collapse; table-layout:auto;\"";
+
+                    return $"<table{beforeStyle} {fixedStyle}{afterStyle}>";
+                },
+                RegexOptions.IgnoreCase
+            );
+
+            // 6. Wrap each <table> in a scrollable <div>
+            rawHtml = Regex.Replace(
+                rawHtml,
+                @"(<table[^>]*>[\s\S]*?</table>)",
+                @"<div style=""overflow-x:auto; width:100%;"">$1</div>",
+                RegexOptions.IgnoreCase
+            );
+
+            // 7. Extract content from WordSection1 and wrap it in a responsive container
+            Match bodyMatch = Regex.Match(rawHtml, @"<div class=WordSection1>([\s\S]*?)</div>\s*</body>", RegexOptions.IgnoreCase);
+            if (bodyMatch.Success)
+            {
+                string body = bodyMatch.Groups[1].Value;
+                rawHtml = $@"
+<div style='max-width:100%; padding-left:10.35%; padding-right:10.35%; position:relative;'>
+{body}
+</div>";
+            }
+
+            return rawHtml;
+        }
+
+
+
+
 
         #region VSTO generated code
 
